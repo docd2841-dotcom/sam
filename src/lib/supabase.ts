@@ -91,5 +91,48 @@ export const mockProperties = [
     created_by: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
+  },
+  {
+    id: 'prop-3',
+    title: 'Appartement 3 pièces meublé Akwa',
+    description: 'Appartement lumineux avec vue sur la mer à Akwa. Entièrement meublé et équipé.',
+    type: 'appartement',
+    location: 'Akwa Nord',
+    city: 'Douala',
+    area_sqm: 95,
+    status: 'réservé',
+    price: 25000000,
+    presentation_video_url: null,
+    latitude: 4.041107,
+    longitude: 9.703949,
+    features: ['meublé', 'vue mer', 'ascenseur', 'gardien', 'internet fibre'],
+    images: [
+      'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800',
+      'https://images.pexels.com/photos/1571463/pexels-photo-1571463.jpeg?auto=compress&cs=tinysrgb&w=800'
+    ],
+    created_by: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 'prop-4',
+    title: 'Studio meublé centre-ville Yaoundé',
+    description: 'Studio entièrement meublé et équipé au cœur de Yaoundé.',
+    type: 'studio',
+    location: 'Centre-ville',
+    city: 'Yaoundé',
+    area_sqm: 35,
+    status: 'disponible',
+    price: 8000000,
+    presentation_video_url: null,
+    latitude: 3.848032,
+    longitude: 11.502075,
+    features: ['meublé', 'cuisine équipée', 'eau chaude', 'proche transports'],
+    images: [
+      'https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=800'
+    ],
+    created_by: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   }
 ];

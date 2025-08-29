@@ -18,8 +18,12 @@ export const useProperties = () => {
       // Use mock data when Supabase is not configured
       console.log('Using mock properties - Supabase not configured');
       
+      // Get stored mock properties from localStorage
+      const storedMockProperties = JSON.parse(localStorage.getItem('geocasa_mock_properties') || '[]');
+      const allMockProperties = [...mockProperties, ...storedMockProperties];
+      
       // Transform mock data to match expected format
-      const transformedProperties = mockProperties.map(property => ({
+      const transformedProperties = allMockProperties.map(property => ({
         ...property,
         property_images: property.images?.map(url => ({ image_url: url })) || [],
         property_type: property.type, // Map type to property_type for consistency
@@ -68,6 +72,9 @@ export const useProperties = () => {
   const getPropertyById = async (id: string) => {
     try {
       if (!isSupabaseConfigured()) {
+        const storedMockProperties = JSON.parse(localStorage.getItem('geocasa_mock_properties') || '[]');
+        const allMockProperties = [...mockProperties, ...storedMockProperties];
+        const property = allMockProperties.find(p => p.id === id);
         const property = mockProperties.find(p => p.id === id);
         if (!property) throw new Error('Propriété non trouvée');
         return {
