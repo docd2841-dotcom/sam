@@ -74,8 +74,8 @@ export const useProperties = () => {
       if (!isSupabaseConfigured()) {
         const storedMockProperties = JSON.parse(localStorage.getItem('geocasa_mock_properties') || '[]');
         const allMockProperties = [...mockProperties, ...storedMockProperties];
+        // REMOVED THE DUPLICATE DECLARATION HERE
         const property = allMockProperties.find(p => p.id === id);
-        const property = mockProperties.find(p => p.id === id);
         if (!property) throw new Error('Propriété non trouvée');
         return {
           ...property,
