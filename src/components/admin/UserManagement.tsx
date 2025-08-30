@@ -26,6 +26,17 @@ const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [viewingUser, setViewingUser] = useState<any>(null);
+  const [showAddUserForm, setShowAddUserForm] = useState(false);
+  const [newUserForm, setNewUserForm] = useState({
+    username: '',
+    email: '',
+    password: '',
+    first_name: '',
+    last_name: '',
+    phone: '',
+    role: 'client'
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -134,6 +145,93 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  const handleViewUser = (user: any) => {
+    setViewingUser(user);
+  };
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      if (!isSupabaseConfigured()) {
+        // Mock user creation
+        const storedUsers = JSON.parse(localStorage.getItem('geocasa_mock_users') || '[]');
+        const newUser = {
+          id: `user-${Date.now()}`,
+          ...newUserForm,
+          password_hash: newUserForm.password,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        storedUsers.push(newUser);
+        localStorage.setItem('geocasa_mock_users', JSON.stringify(storedUsers));
+        
+        await fetchUsers();
+        setShowAddUserForm(false);
+        setNewUserForm({
+          username: '',
+          email: '',
+          password: '',
+          first_name: '',
+          last_name: '',
+          phone: '',
+          role: 'client'
+        });
+        toast.success(language === 'en' ? 'User added successfully' : 'Utilisateur ajouté avec succès');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('users')
+        .insert({
+          username: newUserForm.username,
+          email: newUserForm.email,
+          password_hash: newUserForm.password,
+          first_name: newUserForm.first_name,
+          last_name: newUserForm.last_name,
+          phone: newUserForm.phone
+        });
+
+      if (error) throw error;
+
+      // Add admin role if needed
+      if (newUserForm.role !== 'client') {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', newUserForm.email)
+          .single();
+
+        if (userData) {
+          await supabase
+            .from('admins')
+            .insert({
+              user_id: userData.id,
+              role: newUserForm.role
+            });
+        }
+      }
+
+      await fetchUsers();
+      setShowAddUserForm(false);
+      setNewUserForm({
+        username: '',
+        email: '',
+        password: '',
+        first_name: '',
+        last_name: '',
+        phone: '',
+        role: 'client'
+      });
+      toast.success(language === 'en' ? 'User added successfully' : 'Utilisateur ajouté avec succès');
+    } catch (error) {
+      console.error('Error adding user:', error);
+      toast.error(language === 'en' ? 'Error adding user' : 'Erreur lors de l\'ajout');
+    }
+  };
+
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -190,6 +288,7 @@ const UserManagement: React.FC = () => {
         <button className="mt-4 sm:mt-0 bg-gradient-to-r from-geocasa-blue to-geocasa-orange text-white px-6 py-3 rounded-lg hover:from-geocasa-blue-dark hover:to-geocasa-orange-dark transition-all duration-300 flex items-center shadow-lg">
           <Plus className="h-5 w-5 mr-2" />
           {language === 'en' ? 'Add User' : 'Ajouter un Utilisateur'}
+          onClick={() => setShowAddUserForm(true)}
         </button>
       </div>
 
@@ -380,6 +479,7 @@ const UserManagement: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
                         <button 
+                          onClick={() => handleViewUser(user)}
                           className="text-geocasa-blue hover:text-geocasa-blue-dark p-2 rounded-lg hover:bg-blue-50 transition-all"
                           title={language === 'en' ? 'View Details' : 'Voir les Détails'}
                         >
@@ -436,6 +536,263 @@ const UserManagement: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Add User Modal */}
+      {showAddUserForm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {language === 'en' ? 'Add New User' : 'Ajouter un Nouvel Utilisateur'}
+                </h2>
+                <button
+                  onClick={() => setShowAddUserForm(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleAddUser} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {language === 'en' ? 'Username' : 'Nom d\'utilisateur'} *
+                    </label>
+                    <input
+                      type="text"
+                      value={newUserForm.username}
+                      onChange={(e) => setNewUserForm(prev => ({ ...prev, username: e.target.value }))}
+                      required
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-geocasa-blue focus:border-transparent outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      value={newUserForm.email}
+                      onChange={(e) => setNewUserForm(prev => ({ ...prev, email: e.target.value }))}
+                      required
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-geocasa-blue focus:border-transparent outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {language === 'en' ? 'First Name' : 'Prénom'} *
+                    </label>
+                    <input
+                      type="text"
+                      value={newUserForm.first_name}
+                      onChange={(e) => setNewUserForm(prev => ({ ...prev, first_name: e.target.value }))}
+                      required
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-geocasa-blue focus:border-transparent outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {language === 'en' ? 'Last Name' : 'Nom'} *
+                    </label>
+                    <input
+                      type="text"
+                      value={newUserForm.last_name}
+                      onChange={(e) => setNewUserForm(prev => ({ ...prev, last_name: e.target.value }))}
+                      required
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-geocasa-blue focus:border-transparent outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {language === 'en' ? 'Phone' : 'Téléphone'}
+                    </label>
+                    <input
+                      type="tel"
+                      value={newUserForm.phone}
+                      onChange={(e) => setNewUserForm(prev => ({ ...prev, phone: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-geocasa-blue focus:border-transparent outline-none"
+                      placeholder="+237 6XX XXX XXX"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {language === 'en' ? 'Role' : 'Rôle'} *
+                    </label>
+                    <select
+                      value={newUserForm.role}
+                      onChange={(e) => setNewUserForm(prev => ({ ...prev, role: e.target.value }))}
+                      required
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-geocasa-blue focus:border-transparent outline-none"
+                    >
+                      <option value="client">{language === 'en' ? 'Client' : 'Client'}</option>
+                      <option value="staff">{language === 'en' ? 'Staff' : 'Personnel'}</option>
+                      <option value="manager">{language === 'en' ? 'Manager' : 'Gestionnaire'}</option>
+                      <option value="admin">{language === 'en' ? 'Administrator' : 'Administrateur'}</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {language === 'en' ? 'Password' : 'Mot de passe'} *
+                  </label>
+                  <input
+                    type="password"
+                    value={newUserForm.password}
+                    onChange={(e) => setNewUserForm(prev => ({ ...prev, password: e.target.value }))}
+                    required
+                    minLength={6}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-geocasa-blue focus:border-transparent outline-none"
+                  />
+                </div>
+
+                <div className="flex gap-4 pt-6 border-t border-gray-200">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-gradient-to-r from-geocasa-blue to-geocasa-orange text-white py-3 px-6 rounded-lg hover:from-geocasa-blue-dark hover:to-geocasa-orange-dark transition-all duration-300"
+                  >
+                    {language === 'en' ? 'Add User' : 'Ajouter l\'Utilisateur'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddUserForm(false)}
+                    className="bg-gray-600 text-white py-3 px-6 rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    {language === 'en' ? 'Cancel' : 'Annuler'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User View Modal */}
+      {viewingUser && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {language === 'en' ? 'User Details' : 'Détails de l\'Utilisateur'}
+                </h2>
+                <button
+                  onClick={() => setViewingUser(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* User Profile */}
+                <div className="text-center">
+                  <div className="w-24 h-24 bg-gradient-to-r from-geocasa-blue to-geocasa-orange rounded-full flex items-center justify-center mx-auto mb-4">
+                    {viewingUser.profile_image_url ? (
+                      <img 
+                        src={viewingUser.profile_image_url} 
+                        alt={`${viewingUser.first_name} ${viewingUser.last_name}`}
+                        className="w-24 h-24 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-white font-bold text-xl">
+                        {viewingUser.first_name?.[0]}{viewingUser.last_name?.[0]}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {viewingUser.first_name} {viewingUser.last_name}
+                  </h3>
+                  <p className="text-gray-600">@{viewingUser.username}</p>
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-2 ${getRoleColor(getUserRole(viewingUser))}`}>
+                    {getUserRole(viewingUser)}
+                  </span>
+                </div>
+
+                {/* User Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                      <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                        <Mail className="h-4 w-4 mr-2 text-gray-400" />
+                        <span>{viewingUser.email}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {language === 'en' ? 'Phone' : 'Téléphone'}
+                      </label>
+                      <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                        <Phone className="h-4 w-4 mr-2 text-gray-400" />
+                        <span>{viewingUser.phone || 'Non renseigné'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {language === 'en' ? 'Registration Date' : 'Date d\'inscription'}
+                      </label>
+                      <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                        <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                        <span>{new Date(viewingUser.created_at).toLocaleDateString('fr-FR')}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {language === 'en' ? 'Status' : 'Statut'}
+                      </label>
+                      <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                        <div className={`w-3 h-3 rounded-full mr-2 ${viewingUser.is_active ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                        <span>{viewingUser.is_active ? (language === 'en' ? 'Active' : 'Actif') : (language === 'en' ? 'Inactive' : 'Inactif')}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* User Actions */}
+                <div className="flex gap-3 pt-6 border-t border-gray-200">
+                  <button
+                    onClick={() => toggleUserStatus(viewingUser.id, viewingUser.is_active)}
+                    className={`flex-1 py-2 px-4 rounded-lg transition-colors flex items-center justify-center ${
+                      viewingUser.is_active 
+                        ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                  >
+                    {viewingUser.is_active ? <UserX className="h-4 w-4 mr-2" /> : <UserCheck className="h-4 w-4 mr-2" />}
+                    {viewingUser.is_active 
+                      ? (language === 'en' ? 'Deactivate' : 'Désactiver')
+                      : (language === 'en' ? 'Activate' : 'Activer')
+                    }
+                  </button>
+                  <button
+                    onClick={() => {
+                      setViewingUser(null);
+                      deleteUser(viewingUser.id);
+                    }}
+                    className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {language === 'en' ? 'Delete' : 'Supprimer'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

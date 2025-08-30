@@ -4,6 +4,9 @@ import PropertyManagement from './PropertyManagement';
 import UserManagement from './UserManagement';
 import TransactionManagement from './TransactionManagement';
 import AnalyticsDashboard from './AnalyticsDashboard';
+import NotificationManagement from './NotificationManagement';
+import SettingsManagement from './SettingsManagement';
+import SecurityManagement from './SecurityManagement';
 import { 
   BarChart3, 
   Users, 
@@ -21,7 +24,10 @@ import {
   Filter,
   Search,
   Download,
-  Upload
+  Upload,
+  Bell,
+  Settings,
+  Shield
 } from 'lucide-react';
 import { useProperties } from '../../hooks/useProperties';
 import AdminLayout from './AdminLayout';
@@ -270,6 +276,15 @@ const AdminDashboard: React.FC = () => {
 
       case 'reservations':
         return <TransactionManagement />;
+
+      case 'notifications':
+        return <NotificationManagement />;
+
+      case 'settings':
+        return <SettingsManagement />;
+
+      case 'security':
+        return <SecurityManagement />;
 
       default:
         return (

@@ -30,6 +30,7 @@ const PropertyManagement: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProperty, setEditingProperty] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [viewingProperty, setViewingProperty] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -79,6 +80,10 @@ const PropertyManagement: React.FC = () => {
     });
     setEditingProperty(null);
     setShowAddForm(false);
+  };
+
+  const handleView = (property: any) => {
+    setViewingProperty(property);
   };
 
   const handleEdit = (property: any) => {
@@ -718,6 +723,7 @@ const PropertyManagement: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
                         <button 
+                          onClick={() => handleView(property)}
                           className="text-geocasa-blue hover:text-geocasa-blue-dark p-2 rounded-lg hover:bg-blue-50 transition-all"
                           title={language === 'en' ? 'View' : 'Voir'}
                         >
@@ -767,6 +773,129 @@ const PropertyManagement: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Property View Modal */}
+      {viewingProperty && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {language === 'en' ? 'Property Details' : 'Détails de la Propriété'}
+                </h2>
+                <button
+                  onClick={() => setViewingProperty(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Images */}
+                <div>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    {(viewingProperty.property_images || viewingProperty.images || []).slice(0, 4).map((image: string, index: number) => (
+                      <img 
+                        key={index}
+                        src={typeof image === 'string' ? image : image.image_url}
+                        alt={`${viewingProperty.title} - Image ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg"
+                      />
+                    ))}
+                  </div>
+                  
+                  {viewingProperty.presentation_video_url && (
+                    <div className="aspect-video rounded-lg overflow-hidden">
+                      <iframe
+                        src={viewingProperty.presentation_video_url}
+                        className="w-full h-full"
+                        frameBorder="0"
+                        allowFullScreen
+                        title="Property Video"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Details */}
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{viewingProperty.title}</h3>
+                    <p className="text-gray-700">{viewingProperty.description}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="text-sm text-gray-600">{language === 'en' ? 'Type' : 'Type'}</div>
+                      <div className="font-semibold capitalize">{viewingProperty.type || viewingProperty.property_type}</div>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="text-sm text-gray-600">{language === 'en' ? 'Status' : 'Statut'}</div>
+                      <div className="font-semibold capitalize">{viewingProperty.status}</div>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="text-sm text-gray-600">{language === 'en' ? 'Area' : 'Surface'}</div>
+                      <div className="font-semibold">{viewingProperty.area_sqm} m²</div>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="text-sm text-gray-600">{language === 'en' ? 'Price' : 'Prix'}</div>
+                      <div className="font-semibold text-geocasa-blue">{formatPrice(viewingProperty.price || 0)}</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-sm text-gray-600 mb-2">{language === 'en' ? 'Location' : 'Localisation'}</div>
+                    <div className="flex items-center">
+                      <MapPin className="h-4 w-4 mr-2 text-geocasa-orange" />
+                      <span className="font-semibold">{viewingProperty.location}, {viewingProperty.city}</span>
+                    </div>
+                  </div>
+
+                  {viewingProperty.features && viewingProperty.features.length > 0 && (
+                    <div>
+                      <div className="text-sm text-gray-600 mb-2">{language === 'en' ? 'Features' : 'Caractéristiques'}</div>
+                      <div className="flex flex-wrap gap-2">
+                        {viewingProperty.features.map((feature: string, index: number) => (
+                          <span 
+                            key={index}
+                            className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                          >
+                            {feature}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setViewingProperty(null);
+                        handleEdit(viewingProperty);
+                      }}
+                      className="flex-1 bg-geocasa-blue text-white py-2 px-4 rounded-lg hover:bg-geocasa-blue-dark transition-colors flex items-center justify-center"
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      {language === 'en' ? 'Edit' : 'Modifier'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setViewingProperty(null);
+                        handleDelete(viewingProperty.id);
+                      }}
+                      className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      {language === 'en' ? 'Delete' : 'Supprimer'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
